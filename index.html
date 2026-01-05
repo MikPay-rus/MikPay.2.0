@@ -1,0 +1,1198 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>MikPay 2.0 — Центр покупок и оплат</title>
+  <style>
+    :root{
+      --bg1:#4e6cff; --bg2:#6fc1ff;
+      --card:#ffffff; --text:#0f172a; --muted:#64748b;
+      --line:#e5e7eb; --pri:#4e6cff; --bad:#ef4444; --ok:#22c55e;
+      --sh:0 18px 50px rgba(0,0,0,.20);
+      --r:18px;
+      --toast:rgba(15,23,42,.92);
+    }
+    body.dark{
+      --bg1:#0b1220; --bg2:#111827;
+      --card:#0f172a; --text:#e5e7eb; --muted:#94a3b8;
+      --line:#1f2937; --pri:#5b7cfa;
+      --sh:0 18px 60px rgba(0,0,0,.45);
+      --toast:rgba(255,255,255,.12);
+    }
+    *{ box-sizing:border-box; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif }
+    body{
+      margin:0; min-height:100vh; color:var(--text);
+      display:flex; align-items:center; justify-content:center;
+      padding:18px;
+      background:
+        radial-gradient(900px 500px at 10% 10%, rgba(255,255,255,.35), transparent 60%),
+        radial-gradient(700px 420px at 90% 20%, rgba(255,255,255,.25), transparent 55%),
+        linear-gradient(135deg,var(--bg1),var(--bg2));
+    }
+
+    .app{
+      width:min(1040px,100%);
+      background:rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.22);
+      border-radius:calc(var(--r) + 12px);
+      padding:14px;
+      backdrop-filter: blur(10px);
+    }
+    .panel{
+      position:relative;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      box-shadow:var(--sh);
+      overflow:hidden;
+    }
+    header{
+      display:flex; justify-content:space-between; align-items:center;
+      padding:14px; border-bottom:1px solid var(--line);
+      gap:12px;
+    }
+    .brand{display:flex; gap:10px; align-items:center; user-select:none}
+    .logo{
+      width:36px;height:36px;border-radius:14px;
+      background:linear-gradient(135deg,var(--pri),#9ab2ff);
+      box-shadow:0 14px 26px rgba(78,108,255,.35);
+    }
+    .titles{display:flex; flex-direction:column; line-height:1.1}
+    .titles b{font-size:15px; letter-spacing:.2px}
+    .titles small{color:var(--muted); font-size:12px}
+    .pill{
+      font-size:12px; color:var(--muted);
+      border:1px solid var(--line);
+      padding:6px 10px; border-radius:999px;
+      white-space:nowrap;
+    }
+    .iconbtn{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      border-radius:12px;
+      padding:10px 12px;
+      cursor:pointer;
+    }
+    .iconbtn:disabled{opacity:.55;cursor:not-allowed}
+
+    .screen{padding:16px 16px 92px}
+    @media (min-width:900px){ .screen{padding:18px 18px 98px} }
+
+    .title{font-size:22px; margin:6px 0 6px; text-align:center}
+    .sub{color:var(--muted); font-size:13px; margin:0 0 14px; text-align:center}
+
+    .grid{display:grid; grid-template-columns:1fr; gap:12px}
+    @media (min-width:900px){ .grid.two{grid-template-columns:1fr 1fr} }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+      background:transparent;
+    }
+    .card h3{margin:0 0 10px;font-size:14px}
+    .muted{color:var(--muted); font-size:13px}
+    label{display:block; font-size:12px; color:var(--muted); margin:10px 0 6px}
+    input, textarea, select{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      outline:none;
+      font-size:15px;
+      background:transparent;
+      color:var(--text);
+    }
+    input:focus, textarea:focus, select:focus{
+      border-color:rgba(78,108,255,.55);
+      box-shadow:0 0 0 3px rgba(78,108,255,.18);
+    }
+
+    .btn{
+      width:100%;
+      border:none;
+      border-radius:14px;
+      padding:12px 14px;
+      background:var(--pri);
+      color:#fff;
+      font-weight:900;
+      cursor:pointer;
+      margin-top:10px;
+    }
+    .btn.secondary{
+      background:transparent;
+      color:var(--text);
+      border:1px solid var(--line);
+      font-weight:900;
+    }
+    .btn.danger{background:var(--bad)}
+    .btn.ok{background:var(--ok)}
+    .btn:disabled{opacity:.55;cursor:not-allowed}
+
+    .hidden{display:none !important}
+
+    .nav{
+      position:absolute; left:0; right:0; bottom:0;
+      border-top:1px solid var(--line);
+      padding:10px;
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap:8px;
+      background:linear-gradient(180deg, transparent, rgba(0,0,0,.02));
+    }
+    .navbtn{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--muted);
+      border-radius:14px;
+      padding:10px 8px;
+      cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;gap:6px;
+      font-size:11px;
+    }
+    .navbtn span{font-size:18px;line-height:1}
+    .navbtn.active{
+      color:var(--text);
+      border-color:rgba(78,108,255,.45);
+      background:rgba(78,108,255,.10);
+    }
+    .navbtn:disabled{opacity:.55;cursor:not-allowed}
+
+    .kpis{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+    @media (min-width:900px){ .kpis{grid-template-columns:repeat(3,1fr)} }
+    .kpi{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:14px;
+    }
+    .kpi b{font-size:20px}
+    .kpi small{display:block;color:var(--muted);margin-top:4px}
+
+    .list{margin-top:10px}
+    .item{
+      border-top:1px solid var(--line);
+      padding:10px 0;
+      display:flex;justify-content:space-between;gap:10px;align-items:flex-start;
+    }
+    .item:first-child{border-top:none;padding-top:0}
+    .tag{
+      font-size:12px;border:1px solid var(--line);
+      padding:6px 10px;border-radius:999px;color:var(--muted);
+      white-space:nowrap;
+    }
+
+    /* Purchases cards */
+    .pgrid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:10px}
+    @media (min-width:900px){ .pgrid{grid-template-columns:1fr 1fr} }
+    .pcard{
+      border:1px solid var(--line);
+      border-radius:18px;
+      overflow:hidden;
+      display:flex;
+      background:rgba(0,0,0,.01);
+    }
+    body.dark .pcard{background:rgba(255,255,255,.02)}
+    .pimg{
+      width:116px; min-width:116px;
+      background:linear-gradient(135deg, rgba(78,108,255,.35), rgba(111,193,255,.25));
+      border-right:1px solid var(--line);
+      display:flex;align-items:center;justify-content:center;
+      font-size:26px;
+    }
+    .pimg img{width:100%;height:100%;object-fit:cover;display:block}
+    .pbody{padding:12px;flex:1}
+    .ptitle{font-weight:950;line-height:1.15}
+    .prow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .chip{
+      font-size:12px;border:1px solid var(--line);
+      padding:6px 10px;border-radius:999px;color:var(--muted);
+    }
+    .actions{display:flex;gap:10px;margin-top:10px}
+    .actions .btn{margin-top:0}
+    .actions .btn.secondary{flex:1}
+    .actions .btn.primary{flex:1}
+
+    .bankGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+      margin-top:10px;
+    }
+    @media (min-width:900px){ .bankGrid{grid-template-columns:repeat(3,1fr)} }
+    .bankCard{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      cursor:pointer;
+      user-select:none;
+      display:flex; gap:10px; align-items:center;
+      transition:transform .08s ease, background .08s ease, border-color .08s ease;
+    }
+    .bankCard:active{ transform:scale(.99) }
+    .bankCard.active{
+      border-color:rgba(78,108,255,.55);
+      background:rgba(78,108,255,.10);
+    }
+    .bankIcon{
+      width:34px;height:34px;border-radius:12px;
+      border:1px solid var(--line);
+      display:flex;align-items:center;justify-content:center;
+      font-size:18px;
+    }
+    .bankName{font-weight:900; font-size:13px}
+    .bankHint{color:var(--muted); font-size:12px; margin-top:2px}
+
+    /* overlays */
+    .overlay{
+      position:fixed; inset:0;
+      background:rgba(0,0,0,.55);
+      display:flex; align-items:flex-start; justify-content:center;
+      padding:18px;
+      z-index: 9998;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .modal{
+      width:min(640px,100%);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--sh);
+      overflow:hidden;
+      max-height: 92vh;
+      display:flex;
+      flex-direction:column;
+      position:relative;
+    }
+    .modal header{border-bottom:1px solid var(--line); flex:0 0 auto}
+    .modal > .screen{
+      flex:1 1 auto;
+      overflow:auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom:16px !important;
+    }
+
+    /* Visible scrollbar for desktop */
+    .modal > .screen::-webkit-scrollbar{ width: 8px; }
+    .modal > .screen::-webkit-scrollbar-thumb{
+      background: rgba(100,116,139,.45);
+      border-radius: 999px;
+    }
+    body.dark .modal > .screen::-webkit-scrollbar-thumb{ background: rgba(148,163,184,.45); }
+
+    /* Always-visible scroll indicator (палочка) */
+    .vscroll{
+      position:absolute;
+      right:10px;
+      top:66px;
+      bottom:12px;
+      width:6px;
+      border-radius:999px;
+      background: rgba(100,116,139,.16);
+      pointer-events:none;
+      opacity: 0;
+      transition: opacity .12s ease;
+      z-index:2;
+    }
+    .vscroll .thumb{
+      width:100%;
+      min-height:26px;
+      border-radius:999px;
+      background: rgba(78,108,255,.70);
+      transform: translateY(0);
+    }
+    body.dark .vscroll{ background: rgba(148,163,184,.14); }
+    body.dark .vscroll .thumb{ background: rgba(91,124,250,.75); }
+
+    .close{
+      cursor:pointer;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+    }
+
+    .toast{
+      position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+      background:var(--toast); color:#fff;
+      padding:10px 12px; border-radius:14px;
+      font-size:13px; box-shadow:0 16px 40px rgba(0,0,0,.35);
+      max-width:min(720px,92%);
+      z-index: 9999;
+    }
+    body.dark .toast{color:var(--text)}
+    .fineprint{color:var(--muted); font-size:12px; line-height:1.35}
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="panel">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div class="titles">
+          <b>MikPay 2.0</b>
+          <small>Центр покупок и оплат</small>
+        </div>
+        <span class="pill" id="rolePill">Гость</span>
+      </div>
+      <button class="iconbtn" id="gearBtn" aria-label="Настройки">⚙️</button>
+    </header>
+
+    <!-- AUTH -->
+    <div class="screen" id="authScreen">
+      <div class="title">Вход / Регистрация</div>
+      <p class="sub">Аккаунт и покупки сохраняются в этом браузере. Для переноса между устройствами — Экспорт/Импорт в настройках.</p>
+
+      <div class="grid two">
+        <div class="card">
+          <h3>Регистрация</h3>
+          <label>Email</label>
+          <input id="regEmail" type="email" placeholder="example@mail.com" autocomplete="email"/>
+          <label>Пароль</label>
+          <input id="regPass" type="password" placeholder="Придумайте пароль" autocomplete="new-password"/>
+          <button class="btn" id="regBtn">Создать аккаунт</button>
+        </div>
+
+        <div class="card">
+          <h3>Вход</h3>
+          <label>Email</label>
+          <input id="loginEmail" type="email" placeholder="example@mail.com" autocomplete="username"/>
+          <label>Пароль</label>
+          <input id="loginPass" type="password" placeholder="••••••••" autocomplete="current-password"/>
+          <button class="btn" id="loginBtn">Войти</button>
+          <button class="btn secondary" id="forgotBtn">Забыли пароль?</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div class="screen hidden" id="appScreen">
+
+      <!-- DASH -->
+      <div id="dashView">
+        <div class="kpis">
+          <div class="kpi">
+            <b id="kpiSpent">0 ₽</b>
+            <small>Потрачено (оплачено)</small>
+          </div>
+          <div class="kpi">
+            <b id="kpiPending">0</b>
+            <small>Ожидают оплаты</small>
+          </div>
+          <div class="kpi">
+            <b id="kpiTotal">0</b>
+            <small>Всего покупок</small>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3>Быстро добавить покупку</h3>
+          <div class="muted">Вставьте ссылку, сумму и (если получится) мы подтянем название/картинку автоматически.</div>
+
+          <label>Ссылка на товар / заказ</label>
+          <input id="quickLink" type="url" placeholder="https://..."/>
+
+          <div class="grid two">
+            <div>
+              <label>Сумма (₽)</label>
+              <input id="quickAmount" type="number" inputmode="numeric" placeholder="2990"/>
+            </div>
+            <div>
+              <label>Название (можно оставить пустым)</label>
+              <input id="quickTitle" type="text" placeholder="например: Удочка / Заказ #123"/>
+            </div>
+          </div>
+
+          <button class="btn secondary" id="autoFillBtn">Автозаполнение по ссылке</button>
+          <button class="btn" id="addPurchaseBtn">Добавить в покупки</button>
+          <div class="fineprint" style="margin-top:10px">
+            MikPay не принимает данные карты и не обрабатывает платежи. При оплате мы перенаправляем заставку/кнопку на сайт банка/сервиса (по вашим ссылкам в Настройках), а в MikPay фиксируется история.
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h3>Последние действия</h3>
+          <div class="list" id="recentOps"><div class="muted">Пока пусто</div></div>
+        </div>
+      </div>
+
+      <!-- PURCHASES -->
+      <div class="hidden" id="purchasesView">
+        <div class="card">
+          <h3>Покупки</h3>
+          <div class="muted">Нажмите «Оплатить» → откроется окно с деталями и выбором банка → далее «Перейти к оплате».</div>
+        </div>
+        <div class="pgrid" id="purchasesGrid" aria-live="polite"></div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="hidden" id="historyView">
+        <div class="card">
+          <h3>История</h3>
+          <div class="list" id="historyList"><div class="muted">Пока пусто</div></div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div class="hidden" id="profileView">
+        <div class="card">
+          <h3>Профиль</h3>
+          <div class="list">
+            <div class="item">
+              <div><b>Email</b><div class="muted" id="profEmail">—</div></div>
+              <span class="tag">аккаунт</span>
+            </div>
+            <div class="item">
+              <div><b>Поддержка</b><div class="muted">wwwwliii@outlook.com</div></div>
+              <span class="tag">email</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NAV -->
+      <div class="nav">
+        <button class="navbtn active" id="navDash"><span>✨</span>Главная</button>
+        <button class="navbtn" id="navPurch"><span>🧾</span>Покупки</button>
+        <button class="navbtn" id="navHist"><span>🕘</span>История</button>
+        <button class="navbtn" id="navProf"><span>👤</span>Профиль</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="overlay hidden" id="settingsOv">
+  <div class="modal" onclick="event.stopPropagation()">
+    <header>
+      <div class="brand">
+        <div class="logo"></div>
+        <div class="titles"><b>Настройки</b><small id="settingsEmail">—</small></div>
+      </div>
+      <button class="close" id="settingsCloseBtn">✕</button>
+    </header>
+    <div class="screen">
+      <div class="card">
+        <h3>Внешний вид</h3>
+        <button class="btn secondary" id="themeBtn">Сменить тему</button>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3>Ссылки для оплаты (ваши)</h3>
+        <div class="muted">Чтобы после выбора банка открывалась <b>конкретная</b> страница оплаты, вставьте сюда свои готовые ссылки (invoice/checkout). Если пусто — откроем ссылку на товар/заказ.</div>
+
+        <label>Сбер — checkout/invoice ссылка</label>
+        <input id="link_sber" type="url" placeholder="https://..."/>
+
+        <label>Т-Банк — checkout/invoice ссылка</label>
+        <input id="link_tbank" type="url" placeholder="https://..."/>
+
+        <label>ЮMoney — checkout/invoice ссылка</label>
+        <input id="link_yoom" type="url" placeholder="https://..."/>
+
+        <label>ВТБ — checkout/invoice ссылка</label>
+        <input id="link_vtb" type="url" placeholder="https://..."/>
+
+        <label>Озон Банк — checkout/invoice ссылка</label>
+        <input id="link_ozon" type="url" placeholder="https://..."/>
+
+        <button class="btn secondary" id="linksSaveBtn">Сохранить</button>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3>Перенос между устройствами</h3>
+        <button class="btn secondary" id="exportBtn">Экспорт</button>
+        <button class="btn secondary" id="importBtn">Импорт</button>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3>Данные</h3>
+        <button class="btn secondary" id="resetAllBtn">Сбросить данные</button>
+      </div>
+
+      <button class="btn danger" id="logoutBtn">Выйти</button>
+    </div>
+    <div class="vscroll"><div class="thumb"></div></div>
+  </div>
+</div>
+
+<!-- FORGOT PASS -->
+<div class="overlay hidden" id="forgotOv">
+  <div class="modal" onclick="event.stopPropagation()">
+    <header>
+      <div class="brand"><div class="logo"></div><div class="titles"><b>Сброс пароля</b><small>в этом браузере</small></div></div>
+      <button class="close" id="forgotCloseBtn">✕</button>
+    </header>
+    <div class="screen">
+      <label>Email</label>
+      <input id="forgotEmail" type="email" placeholder="example@mail.com"/>
+      <label>Новый пароль</label>
+      <input id="forgotNew" type="password" placeholder="••••••••"/>
+      <button class="btn" id="resetPassBtn">Сбросить</button>
+    </div>
+    <div class="vscroll"><div class="thumb"></div></div>
+  </div>
+</div>
+
+<!-- PAY MODAL (Step 2) -->
+<div class="overlay hidden" id="payOv">
+  <div class="modal" onclick="event.stopPropagation()">
+    <header>
+      <div class="brand"><div class="logo"></div><div class="titles"><b>Оплата</b><small id="paySub">—</small></div></div>
+      <button class="close" id="payCloseBtn">✕</button>
+    </header>
+    <div class="screen">
+      <div class="card">
+        <div class="muted">Шаг 2: выберите банк/сервис и перейдите к оплате. MikPay не принимает данные карты — вы оплачиваете на стороне банка/сервиса.</div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3>Детали покупки</h3>
+        <div class="pcard" style="margin-top:8px">
+          <div class="pimg" id="payImgBox">🛍️</div>
+          <div class="pbody">
+            <div class="ptitle" id="payTitle">—</div>
+            <div class="prow">
+              <span class="chip" id="payAmount">—</span>
+              <span class="chip" id="payStatus">Ожидает оплаты</span>
+            </div>
+            <div class="fineprint" style="margin-top:8px;word-break:break-all" id="payLink">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3>Выберите оплату</h3>
+        <div class="bankGrid" id="bankGridPay"></div>
+        <button class="btn" id="openPaymentBtn">Перейти к оплате</button>
+        <button class="btn ok" id="confirmPaidBtn" disabled>Я оплатил — подтвердить</button>
+        <button class="btn secondary" id="markPlannedBtn">Пока не оплачивать</button>
+        <div class="fineprint" style="margin-top:10px">
+          Если у выбранного банка в Настройках задана checkout-ссылка — откроем её. Иначе откроем ссылку на товар/заказ.
+        </div>
+      </div>
+    </div>
+    <div class="vscroll"><div class="thumb"></div></div>
+  </div>
+</div>
+
+<input id="importFile" type="file" accept="application/json" class="hidden"/>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+(() => {
+  "use strict";
+
+  // Storage keys
+  const K_USERS   = "mikpay2_users";
+  const K_SESSION = "mikpay2_session";
+  const K_THEME   = "mikpay2_theme";
+  const K_LINKS   = "mikpay2_links";
+
+  // Banks (unified entry)
+  const BANKS = [
+    { id:"sber",  name:"Сбер",     hint:"sberbank.ru",  icon:"🟢", url:"https://www.sberbank.ru/" },
+    { id:"tbank", name:"Т-Банк",   hint:"tbank.ru",     icon:"🟡", url:"https://www.tbank.ru/" },
+    { id:"yoom",  name:"ЮMoney",   hint:"yoomoney.ru",  icon:"🔵", url:"https://yoomoney.ru/" },
+    { id:"vtb",   name:"ВТБ",      hint:"vtb.ru",       icon:"🔷", url:"https://www.vtb.ru/" },
+    { id:"ozon",  name:"Озон Банк",hint:"finance.ozon", icon:"🟣", url:"https://finance.ozon.ru/" }
+  ];
+
+  // helpers
+  const el = (id) => document.getElementById(id);
+  const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+  const safeJSON = (val, fallback) => { try { return JSON.parse(val ?? ""); } catch { return fallback; } };
+
+  const loadUsers   = () => safeJSON(localStorage.getItem(K_USERS), {}) || {};
+  const saveUsers   = (u) => localStorage.setItem(K_USERS, JSON.stringify(u));
+  const loadSession = () => safeJSON(localStorage.getItem(K_SESSION), null);
+  const saveSession = (s) => localStorage.setItem(K_SESSION, JSON.stringify(s));
+  const loadLinks   = () => safeJSON(localStorage.getItem(K_LINKS), {}) || {};
+  const saveLinks   = (o) => localStorage.setItem(K_LINKS, JSON.stringify(o || {}));
+
+  const money = (n) => Math.max(0, Math.floor(Number(n) || 0)).toLocaleString("ru-RU") + " ₽";
+  const nowStr = () => new Date().toLocaleString("ru-RU");
+  const uid = () => Math.random().toString(16).slice(2) + Date.now().toString(16);
+
+  const toast = (msg) => {
+    const t = el("toast");
+    t.textContent = msg;
+    t.classList.remove("hidden");
+    setTimeout(() => t.classList.add("hidden"), 1600);
+  };
+
+  const closeOv = (id) => el(id).classList.add("hidden");
+  const openOv  = (id) => el(id).classList.remove("hidden");
+  $$(".overlay").forEach(ov => ov.addEventListener("click", () => ov.classList.add("hidden")));
+  $$(".modal").forEach(m => m.addEventListener("click", (e) => e.stopPropagation()));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") $$(".overlay").forEach(o => o.classList.add("hidden")); });
+
+  // Scroll indicator ("палочка") for any modal
+  (function initVScroll(){
+    const modals = Array.from(document.querySelectorAll('.overlay .modal'));
+    const ensureBar = (modal) => modal.querySelector('.vscroll');
+    const attach = (modal) => {
+      const scr = modal.querySelector(':scope > .screen');
+      const bar = ensureBar(modal);
+      if(!scr || !bar) return;
+      const thumb = bar.querySelector('.thumb');
+      const update = () => {
+        const ch = scr.clientHeight, sh = scr.scrollHeight;
+        if(sh <= ch + 1){ bar.style.opacity = '0'; return; }
+        bar.style.opacity = '1';
+        const track = bar.clientHeight;
+        const th = Math.max(26, Math.round(track * (ch / sh)));
+        thumb.style.height = th + 'px';
+        const maxScroll = sh - ch;
+        const maxMove = track - th;
+        const y = maxScroll ? (scr.scrollTop / maxScroll) * maxMove : 0;
+        thumb.style.transform = 'translateY(' + y + 'px)';
+      };
+      scr.addEventListener('scroll', update, {passive:true});
+      window.addEventListener('resize', update);
+      const tick = () => setTimeout(update, 0);
+      tick();
+      const mo = new MutationObserver(tick);
+      mo.observe(modal.closest('.overlay'), {attributes:true, attributeFilter:['class']});
+    };
+    modals.forEach(attach);
+  })();
+
+  // Theme
+  if (localStorage.getItem(K_THEME) === "dark") document.body.classList.add("dark");
+  el("themeBtn").onclick = () => {
+    document.body.classList.toggle("dark");
+    localStorage.setItem(K_THEME, document.body.classList.contains("dark") ? "dark" : "light");
+    toast("Тема изменена");
+  };
+
+  // Navigation
+  const views = { dash: el("dashView"), purch: el("purchasesView"), hist: el("historyView"), prof: el("profileView") };
+  const navBtns = { dash: el("navDash"), purch: el("navPurch"), hist: el("navHist"), prof: el("navProf") };
+  const navTo = (key) => {
+    Object.keys(views).forEach(k => views[k].classList.toggle("hidden", k !== key));
+    Object.keys(navBtns).forEach(k => navBtns[k].classList.toggle("active", k === key));
+  };
+
+  // User
+  const current = () => {
+    const s = loadSession();
+    if (!s || !s.email) return null;
+    const users = loadUsers();
+    if (!users[s.email]) return null;
+    return { email: s.email, u: users[s.email] };
+  };
+
+  const ensureUserShape = (u) => {
+    u.purchases = u.purchases || [];
+    u.ops = u.ops || [];
+    return u;
+  };
+
+  const addOp = (type, title, amount) => {
+    const c = current(); if (!c) return;
+    const users = loadUsers();
+    ensureUserShape(users[c.email]);
+    users[c.email].ops.unshift({ type, title, amount: Math.floor(Number(amount)||0), when: nowStr() });
+    saveUsers(users);
+  };
+
+  // Render
+  const renderKPIs = () => {
+    const c = current(); if(!c) return;
+    ensureUserShape(c.u);
+    const paid = c.u.purchases.filter(p => p.status === "paid");
+    const pending = c.u.purchases.filter(p => p.status !== "paid");
+    const spent = paid.reduce((s,p)=>s + (p.amount||0), 0);
+    el("kpiSpent").textContent = money(spent);
+    el("kpiPending").textContent = String(pending.length);
+    el("kpiTotal").textContent = String(c.u.purchases.length);
+  };
+
+  const renderRecentOps = () => {
+    const c = current(); if(!c) return;
+    ensureUserShape(c.u);
+    const list = el("recentOps");
+    const ops = c.u.ops.slice(0,6);
+    list.innerHTML = !ops.length ? '<div class="muted">Пока пусто</div>' :
+      ops.map(o => `
+        <div class="item">
+          <div><b>${o.title}</b><div class="muted">${o.when}</div></div>
+          <span class="tag">${o.amount ? money(o.amount) : "—"}</span>
+        </div>`).join("");
+  };
+
+  const renderHistory = () => {
+    const c = current(); if(!c) return;
+    ensureUserShape(c.u);
+    const list = el("historyList");
+    const ops = c.u.ops;
+    list.innerHTML = !ops.length ? '<div class="muted">Пока пусто</div>' :
+      ops.slice(0,40).map(o => `
+        <div class="item">
+          <div><b>${o.title}</b><div class="muted">${o.when}</div></div>
+          <span class="tag">${o.amount ? money(o.amount) : "—"}</span>
+        </div>`).join("");
+  };
+
+  const renderPurchases = () => {
+    const c = current(); if(!c) return;
+    ensureUserShape(c.u);
+    const grid = el("purchasesGrid");
+    const items = c.u.purchases.slice().sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+    if(!items.length){
+      grid.innerHTML = '<div class="card"><div class="muted">Пока нет покупок. Добавьте первую на главной странице.</div></div>';
+      return;
+    }
+    grid.innerHTML = items.map(p => {
+      const statusChip = p.status === "paid" ? "Оплачено" : "Ожидает оплаты";
+      const when = p.status === "paid" ? (p.paidWhen || "—") : (p.createdWhen || "—");
+      const icon = p.status === "paid" ? "✅" : "🛍️";
+      const img = p.image ? `<img alt="" src="${p.image}"/>` : icon;
+      return `
+        <div class="pcard">
+          <div class="pimg">${img}</div>
+          <div class="pbody">
+            <div class="ptitle">${escapeHtml(p.title || "Покупка")}</div>
+            <div class="muted" style="margin-top:6px;word-break:break-all">${escapeHtml(p.link || "")}</div>
+            <div class="prow">
+              <span class="chip">${money(p.amount||0)}</span>
+              <span class="chip">${statusChip}</span>
+              <span class="chip">${when}</span>
+            </div>
+            <div class="actions">
+              <button class="btn secondary" data-act="copy" data-id="${p.id}">Копировать ссылку</button>
+              <button class="btn primary" data-act="pay" data-id="${p.id}">${p.status==="paid" ? "Посмотреть" : "Оплатить"}</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  };
+
+  const renderAll = () => {
+    const c = current(); if(!c) return;
+    el("rolePill").textContent = "Пользователь";
+    el("profEmail").textContent = c.email;
+    renderKPIs();
+    renderRecentOps();
+    renderPurchases();
+    renderHistory();
+  };
+
+  // Simple escape
+  function escapeHtml(str){
+    return String(str ?? "").replace(/[&<>"']/g, (m)=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[m]));
+  }
+
+  // Auth show/hide
+  const showAuth = () => {
+    el("authScreen").classList.remove("hidden");
+    el("appScreen").classList.add("hidden");
+    el("rolePill").textContent = "Гость";
+    el("gearBtn").disabled = true;
+    $$(".navbtn").forEach(b => b.disabled = true);
+  };
+  const showApp = () => {
+    el("authScreen").classList.add("hidden");
+    el("appScreen").classList.remove("hidden");
+    el("gearBtn").disabled = false;
+    $$(".navbtn").forEach(b => b.disabled = false);
+    navTo("dash");
+    renderAll();
+  };
+
+  // Register/Login
+  el("regBtn").onclick = () => {
+    const email = el("regEmail").value.trim().toLowerCase();
+    const pass  = el("regPass").value;
+    if (!email || !pass) return toast("Заполни email и пароль");
+    const users = loadUsers();
+    if (users[email]) return toast("Аккаунт уже существует");
+    users[email] = ensureUserShape({ pass, purchases:[], ops:[] });
+    saveUsers(users);
+    toast("Аккаунт создан");
+    el("loginEmail").value = email;
+    el("loginPass").value = pass;
+  };
+
+  el("loginBtn").onclick = () => {
+    const email = el("loginEmail").value.trim().toLowerCase();
+    const pass  = el("loginPass").value;
+    const users = loadUsers();
+    if (!users[email] || users[email].pass !== pass) return toast("Неверный email или пароль");
+    saveSession({ email });
+    toast("Вход выполнен");
+    showApp();
+  };
+
+  // Forgot
+  el("forgotBtn").onclick = () => openOv("forgotOv");
+  el("forgotCloseBtn").onclick = () => closeOv("forgotOv");
+  el("resetPassBtn").onclick = () => {
+    const email = (el("forgotEmail").value||"").trim().toLowerCase();
+    const np = el("forgotNew").value;
+    if (!email || !np) return toast("Заполните поля");
+    const users = loadUsers();
+    if (!users[email]) return toast("Аккаунт не найден в этом браузере");
+    users[email].pass = np;
+    saveUsers(users);
+    toast("Пароль сброшен");
+    closeOv("forgotOv");
+    el("loginEmail").value = email;
+    el("loginPass").value = np;
+  };
+
+  // Settings
+  el("gearBtn").onclick = () => {
+    const c = current(); if(!c) return toast("Сначала войдите");
+    el("settingsEmail").textContent = c.email;
+    fillLinksUI();
+    openOv("settingsOv");
+  };
+  el("settingsCloseBtn").onclick = () => closeOv("settingsOv");
+
+  const fillLinksUI = () => {
+    const links = loadLinks();
+    ["sber","tbank","yoom","vtb","ozon"].forEach(id => {
+      const inp = el("link_"+id);
+      if(inp) inp.value = links[id] || "";
+    });
+  };
+  el("linksSaveBtn").onclick = () => {
+    const obj = {};
+    ["sber","tbank","yoom","vtb","ozon"].forEach(id => {
+      const v = (el("link_"+id)?.value||"").trim();
+      if(v) obj[id] = v;
+    });
+    saveLinks(obj);
+    toast("Сохранено");
+  };
+
+  // Export/Import/Reset/Logout
+  el("exportBtn").onclick = () => {
+    const payload = {
+      users: loadUsers(),
+      session: loadSession(),
+      theme: localStorage.getItem(K_THEME)||"light",
+      links: loadLinks(),
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(payload,null,2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download="mikpay2_export.json";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    toast("Экспорт готов");
+  };
+  el("importBtn").onclick = () => { const inp = el("importFile"); inp.value=""; inp.click(); };
+  el("importFile").onchange = () => {
+    const file = el("importFile").files?.[0]; if(!file) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{
+        const data = JSON.parse(String(r.result||""));
+        if(!data || typeof data !== "object" || !data.users) return toast("Неверный файл");
+        if(!confirm("Импорт заменит данные на этом устройстве. Продолжить?")) return;
+        localStorage.setItem(K_USERS, JSON.stringify(data.users||{}));
+        localStorage.setItem(K_SESSION, JSON.stringify(data.session||null));
+        localStorage.setItem(K_THEME, data.theme==="dark" ? "dark" : "light");
+        localStorage.setItem(K_LINKS, JSON.stringify(data.links||{}));
+        toast("Импорт выполнен");
+        setTimeout(()=>location.reload(), 400);
+      }catch{ toast("Ошибка импорта"); }
+    };
+    r.readAsText(file);
+  };
+
+  el("resetAllBtn").onclick = () => {
+    if(!confirm("Сбросить аккаунты/покупки/историю в этом браузере?")) return;
+    localStorage.removeItem(K_USERS);
+    localStorage.removeItem(K_SESSION);
+    localStorage.removeItem(K_LINKS);
+    closeOv("settingsOv");
+    toast("Сброшено");
+    showAuth();
+  };
+
+  el("logoutBtn").onclick = () => {
+    saveSession(null);
+    closeOv("settingsOv");
+    toast("Вы вышли");
+    showAuth();
+  };
+
+  // Nav handlers
+  navBtns.dash.onclick  = () => { navTo("dash"); renderKPIs(); renderRecentOps(); };
+  navBtns.purch.onclick = () => { navTo("purch"); renderPurchases(); };
+  navBtns.hist.onclick  = () => { navTo("hist"); renderHistory(); };
+  navBtns.prof.onclick  = () => { navTo("prof"); };
+
+  // --- Purchase add ---
+  const amt = (v) => Math.floor(Number(v||0));
+  const normalizeUrl = (u) => {
+    const s = String(u||"").trim();
+    if(!s) return "";
+    if(s.startsWith("http://") || s.startsWith("https://")) return s;
+    return "https://" + s;
+  };
+
+  // Best-effort metadata fetch via public proxy (may fail on some sites)
+  const fetchMeta = async (url) => {
+    const u = normalizeUrl(url);
+    // Try a couple of proxies; if blocked — we fail gracefully
+    const proxies = [
+      (x) => "https://r.jina.ai/" + x,
+      (x) => "https://r.jina.ai/http://"+ x.replace(/^https?:\/\//,""),
+      (x) => "https://r.jina.ai/https://"+ x.replace(/^https?:\/\//,"")
+    ];
+    let text = "";
+    for(const p of proxies){
+      try{
+        const res = await fetch(p(u), {cache:"no-store"});
+        if(!res.ok) continue;
+        text = await res.text();
+        if(text && text.length > 200) break;
+      }catch{}
+    }
+    if(!text) throw new Error("fetch failed");
+
+    // Try parse title and og:image from returned content (might be raw or transformed)
+    const titleMatch = text.match(/<title[^>]*>([^<]{2,200})<\/title>/i) || text.match(/^\s*#\s+(.{2,120})/m);
+    let title = titleMatch ? String(titleMatch[1]).trim() : "";
+    // og:image
+    const imgMatch = text.match(/property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+                     text.match(/content=["']([^"']+)["'][^>]*property=["']og:image["']/i) ||
+                     text.match(/https?:\/\/[^ 
+"']+\.(?:jpg|jpeg|png|webp)/i);
+    let image = imgMatch ? String(imgMatch[1]).trim() : "";
+    // clean entities a bit
+    title = title.replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,"<").replace(/&gt;/g,">");
+    return { title, image };
+  };
+
+  el("autoFillBtn").onclick = async () => {
+    const link = el("quickLink").value;
+    const u = normalizeUrl(link);
+    if(!u.startsWith("http")) return toast("Вставьте ссылку (https://...)");
+    toast("Пробую подтянуть данные…");
+    try{
+      const meta = await fetchMeta(u);
+      if(meta.title && !el("quickTitle").value.trim()) el("quickTitle").value = meta.title.slice(0,120);
+      // we don't set image here, image stored on add (best effort via meta fetch again)
+      toast("Готово");
+    }catch{
+      toast("Не удалось подтянуть — заполните вручную");
+    }
+  };
+
+  const createPurchase = async ({link, title, amount}) => {
+    const c = current(); if(!c) return;
+    const users = loadUsers();
+    ensureUserShape(users[c.email]);
+
+    const u = normalizeUrl(link);
+    let t = (title||"").trim();
+    let img = "";
+    try{
+      const meta = await fetchMeta(u);
+      if(!t && meta.title) t = meta.title.slice(0,120);
+      if(meta.image && meta.image.startsWith("http")) img = meta.image;
+    }catch{}
+    if(!t) t = "Покупка";
+
+    const p = {
+      id: uid(),
+      link: u,
+      title: t,
+      amount: Math.max(0, Math.floor(Number(amount)||0)),
+      image: img,
+      status: "pending",
+      createdAt: Date.now(),
+      createdWhen: nowStr(),
+      paidAt: null,
+      paidWhen: null,
+      paidBy: null
+    };
+
+    users[c.email].purchases.unshift(p);
+    addOp("create", `Добавлено: ${t}`, p.amount);
+    saveUsers(users);
+    renderAll();
+  };
+
+  el("addPurchaseBtn").onclick = async () => {
+    const link = el("quickLink").value;
+    const amount = amt(el("quickAmount").value);
+    const title = el("quickTitle").value;
+    if(!normalizeUrl(link).startsWith("http")) return toast("Вставьте ссылку (https://...)");
+    if(!Number.isFinite(amount) || amount <= 0) return toast("Введите сумму");
+    await createPurchase({link, title, amount});
+    el("quickLink").value = "";
+    el("quickAmount").value = "";
+    el("quickTitle").value = "";
+    toast("Добавлено");
+  };
+
+  // --- Pay flow (Step 2 modal) ---
+  let activePurchaseId = null;
+  const payState = { bank: BANKS[0].id };
+
+  const makeBankSelector = (mountId, stateObj, key) => {
+    const mount = el(mountId);
+    mount.innerHTML = BANKS.map(b => `
+      <div class="bankCard" data-bank="${b.id}">
+        <div class="bankIcon">${b.icon}</div>
+        <div>
+          <div class="bankName">${b.name}</div>
+          <div class="bankHint">${b.hint}</div>
+        </div>
+      </div>`).join("");
+
+    const setActive = (id) => {
+      stateObj[key] = id;
+      $$("#" + mountId + " .bankCard").forEach(c => c.classList.toggle("active", c.dataset.bank === id));
+    };
+
+    mount.addEventListener("click", (e) => {
+      const card = e.target.closest(".bankCard");
+      if(card) setActive(card.dataset.bank);
+    });
+
+    setActive(BANKS[0].id);
+  };
+
+  makeBankSelector("bankGridPay", payState, "bank");
+
+  const setPayImg = (src) => {
+    const box = el("payImgBox");
+    if(src && src.startsWith("http")){
+      box.innerHTML = `<img alt="" src="${src}"/>`;
+    }else{
+      box.textContent = "🛍️";
+    }
+  };
+
+  const openPayModalFor = (purchaseId) => {
+    const c = current(); if(!c) return;
+    ensureUserShape(c.u);
+    const p = c.u.purchases.find(x => x.id === purchaseId);
+    if(!p) return;
+    activePurchaseId = purchaseId;
+
+    el("paySub").textContent = p.status === "paid" ? "чек / детали" : "шаг 2: оплата";
+    el("payTitle").textContent = p.title;
+    el("payAmount").textContent = money(p.amount);
+    el("payStatus").textContent = (p.status === "paid") ? ("Оплачено • " + (p.paidWhen||"")) : "Ожидает оплаты";
+    el("payLink").textContent = p.link;
+    setPayImg(p.image);
+
+    el("confirmPaidBtn").disabled = true;
+    openOv("payOv");
+  };
+
+  el("payCloseBtn").onclick = () => closeOv("payOv");
+
+  const openPayment = () => {
+    const c = current(); if(!c) return toast("Сначала войдите");
+    ensureUserShape(c.u);
+    const p = c.u.purchases.find(x => x.id === activePurchaseId);
+    if(!p) return toast("Покупка не найдена");
+    const links = loadLinks();
+    const bankId = payState.bank;
+    const bank = BANKS.find(b => b.id === bankId) || BANKS[0];
+    const custom = (links && links[bankId]) ? String(links[bankId]).trim() : "";
+    const target = (custom && custom.startsWith("http")) ? custom : p.link;
+
+    const w = window.open(target, "_blank", "noopener,noreferrer");
+    if(!w && confirm("Браузер заблокировал окно. Открыть в этой вкладке?")) location.href = target;
+    el("confirmPaidBtn").disabled = false;
+    toast("После оплаты нажмите «Подтвердить»");
+  };
+
+  const confirmPaid = () => {
+    const c = current(); if(!c) return toast("Сначала войдите");
+    const users = loadUsers();
+    const u = users[c.email]; if(!u) return;
+    ensureUserShape(u);
+
+    const idx = u.purchases.findIndex(x => x.id === activePurchaseId);
+    if(idx === -1) return toast("Покупка не найдена");
+    const p = u.purchases[idx];
+
+    const bank = BANKS.find(b => b.id === payState.bank) || BANKS[0];
+    p.status = "paid";
+    p.paidAt = Date.now();
+    p.paidWhen = nowStr();
+    p.paidBy = bank.name;
+
+    saveUsers(users);
+    addOp("paid", `Оплачено (${bank.name}): ${p.title}`, p.amount);
+    closeOv("payOv");
+    toast("Готово");
+    renderAll();
+    navTo("hist");
+  };
+
+  const markPlanned = () => {
+    const c = current(); if(!c) return;
+    const users = loadUsers();
+    const u = users[c.email]; if(!u) return;
+    ensureUserShape(u);
+    const p = u.purchases.find(x => x.id === activePurchaseId);
+    if(!p) return;
+    p.status = "pending";
+    p.paidAt = null; p.paidWhen = null; p.paidBy = null;
+    saveUsers(users);
+    addOp("pending", `Отложено: ${p.title}`, p.amount);
+    toast("Отложено");
+    closeOv("payOv");
+    renderAll();
+  };
+
+  el("openPaymentBtn").onclick = openPayment;
+  el("confirmPaidBtn").onclick = confirmPaid;
+  el("markPlannedBtn").onclick = markPlanned;
+
+  // Purchases grid click handlers
+  el("purchasesGrid").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button");
+    if(!btn) return;
+    const act = btn.dataset.act;
+    const id = btn.dataset.id;
+    const c = current(); if(!c) return;
+    ensureUserShape(c.u);
+    const p = c.u.purchases.find(x => x.id === id);
+    if(!p) return;
+
+    if(act === "copy"){
+      try{ await navigator.clipboard.writeText(p.link); toast("Ссылка скопирована"); }
+      catch{ toast("Не удалось скопировать"); }
+    }
+    if(act === "pay"){
+      openPayModalFor(id);
+    }
+  });
+
+  // Init
+  el("gearBtn").disabled = true;
+  $$(".navbtn").forEach(b => b.disabled = true);
+
+  const s = loadSession();
+  const users0 = loadUsers();
+  if (s && s.email && users0[s.email]) showApp();
+  else showAuth();
+})();
+</script>
+</body>
+</html>
